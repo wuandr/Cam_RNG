@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">WebCam RNG</string>
+    <string name="capture_button">Capture &amp; Generate</string>
+    <string name="status_ready">Ready to capture.</string>
+</resources>
