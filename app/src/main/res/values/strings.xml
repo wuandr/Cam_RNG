@@ -1,5 +1,11 @@
 <resources>
-    <string name="app_name">WebCam RNG</string>
-    <string name="capture_button">Capture &amp; Generate</string>
-    <string name="status_ready">Ready to capture.</string>
+    <string name="app_name">Cam RNG</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_capturing">Capturing...</string>
+    <string name="status_permission">Camera permission required</string>
+    <string name="flip_button">Flip coin</string>
+    <string name="status_heads">Heads</string>
+    <string name="status_tails">Tails</string>
+    <string name="status_error">Camera error</string>
+    <string name="status_no_camera">No camera available</string>
 </resources>

@@ -1,2 +1,32 @@
 .venv/
 seed.png
+
+# Gradle
+.gradle/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+
+# Local configuration
+local.properties
+
+# Android/Java build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Native build artifacts
+.cxx/
+.externalNativeBuild/
+
+# Keystores
+*.jks
+*.keystore
