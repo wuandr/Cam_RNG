@@ -13,6 +13,24 @@
         android:text="@string/status_ready"
         android:textSize="24sp" />
 
+    <Switch
+        android:id="@+id/cameraToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/camera_toggle_label" />
+
+    <ImageView
+        android:id="@+id/framePreview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_weight="1"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/frame_preview_desc"
+        android:scaleType="centerCrop" />
+
     <Button
         android:id="@+id/flipButton"
         android:layout_width="wrap_content"

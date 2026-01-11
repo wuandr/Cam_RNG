@@ -12,20 +12,29 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.TotalCaptureResult
-import android.media.ImageFormat
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
+import android.graphics.ImageFormat
+import android.graphics.BitmapFactory
 import android.media.ImageReader
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Size
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.Switch
 import android.widget.TextView
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.concurrent.Executor
 
 class MainActivity : Activity() {
     private lateinit var statusText: TextView
     private lateinit var flipButton: Button
+    private lateinit var framePreview: ImageView
+    private lateinit var cameraToggle: Switch
 
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
@@ -43,6 +52,8 @@ class MainActivity : Activity() {
 
         statusText = findViewById(R.id.statusText)
         flipButton = findViewById(R.id.flipButton)
+        framePreview = findViewById(R.id.framePreview)
+        cameraToggle = findViewById(R.id.cameraToggle)
 
         startBackgroundThread()
 
@@ -114,13 +125,13 @@ class MainActivity : Activity() {
         }
 
         val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameraId = pickCameraId(cameraManager)
+        val cameraId = pickCameraId(cameraManager, cameraToggle.isChecked)
         if (cameraId == null) {
             showError(R.string.status_no_camera)
             return
         }
 
-        val imageSize = pickSmallestJpegSize(cameraManager, cameraId)
+        val imageSize = pickLargestJpegSize(cameraManager, cameraId)
         val reader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 1)
         imageReader = reader
 
@@ -133,7 +144,11 @@ class MainActivity : Activity() {
             closeCamera()
 
             val isHeads = flipFromSeed(bytes)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             runOnUiThread {
+                if (bitmap != null) {
+                    framePreview.setImageBitmap(bitmap)
+                }
                 statusText.text = getString(if (isHeads) R.string.status_heads else R.string.status_tails)
                 flipButton.isEnabled = true
                 capturing = false
@@ -143,33 +158,46 @@ class MainActivity : Activity() {
         openCamera(cameraManager, cameraId, reader)
     }
 
-    private fun pickCameraId(cameraManager: CameraManager): String? {
+    private fun pickCameraId(cameraManager: CameraManager, useFront: Boolean): String? {
         return try {
             var fallback: String? = null
+            var preferredFallback: String? = null
             for (id in cameraManager.cameraIdList) {
                 if (fallback == null) {
                     fallback = id
                 }
                 val characteristics = cameraManager.getCameraCharacteristics(id)
                 val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
-                    return id
+                if (facing != null) {
+                    if (preferredFallback == null) {
+                        if (useFront && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                            preferredFallback = id
+                        } else if (!useFront && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                            preferredFallback = id
+                        }
+                    }
+                    if (useFront && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                        return id
+                    }
+                    if (!useFront && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                        return id
+                    }
                 }
             }
-            fallback
+            preferredFallback ?: fallback
         } catch (exc: CameraAccessException) {
             null
         }
     }
 
-    private fun pickSmallestJpegSize(cameraManager: CameraManager, cameraId: String): Size {
+    private fun pickLargestJpegSize(cameraManager: CameraManager, cameraId: String): Size {
         return try {
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
             val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val sizes = map?.getOutputSizes(ImageFormat.JPEG)
-            sizes?.minByOrNull { it.width * it.height } ?: Size(640, 480)
+            sizes?.maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
         } catch (exc: CameraAccessException) {
-            Size(640, 480)
+            Size(1920, 1080)
         }
     }
 
@@ -208,35 +236,53 @@ class MainActivity : Activity() {
 
     private fun createCaptureSession(device: CameraDevice, reader: ImageReader) {
         try {
-            device.createCaptureSession(
-                listOf(reader.surface),
-                object : CameraCaptureSession.StateCallback() {
-                    override fun onConfigured(session: CameraCaptureSession) {
-                        captureSession = session
-                        val request = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
-                            addTarget(reader.surface)
-                        }
-                        session.capture(
-                            request.build(),
-                            object : CameraCaptureSession.CaptureCallback() {
-                                override fun onCaptureCompleted(
-                                    session: CameraCaptureSession,
-                                    request: CaptureRequest,
-                                    result: TotalCaptureResult
-                                ) {
-                                    // ImageReader listener handles the result.
-                                }
-                            },
-                            backgroundHandler
-                        )
+            val callback = object : CameraCaptureSession.StateCallback() {
+                override fun onConfigured(session: CameraCaptureSession) {
+                    captureSession = session
+                    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
+                        addTarget(reader.surface)
                     }
+                    session.capture(
+                        request.build(),
+                        object : CameraCaptureSession.CaptureCallback() {
+                            override fun onCaptureCompleted(
+                                session: CameraCaptureSession,
+                                request: CaptureRequest,
+                                result: TotalCaptureResult
+                            ) {
+                                // ImageReader listener handles the result.
+                            }
+                        },
+                        backgroundHandler
+                    )
+                }
 
-                    override fun onConfigureFailed(session: CameraCaptureSession) {
-                        showError(R.string.status_error)
+                override fun onConfigureFailed(session: CameraCaptureSession) {
+                    showError(R.string.status_error)
+                }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val handler = backgroundHandler
+                val executor = Executor { command ->
+                    if (handler != null) {
+                        handler.post(command)
+                    } else {
+                        command.run()
                     }
-                },
-                backgroundHandler
-            )
+                }
+                val outputConfigs = listOf(OutputConfiguration(reader.surface))
+                val config = SessionConfiguration(
+                    SessionConfiguration.SESSION_REGULAR,
+                    outputConfigs,
+                    executor,
+                    callback
+                )
+                device.createCaptureSession(config)
+            } else {
+                @Suppress("DEPRECATION")
+                device.createCaptureSession(listOf(reader.surface), callback, backgroundHandler)
+            }
         } catch (exc: CameraAccessException) {
             showError(R.string.status_error)
         }
