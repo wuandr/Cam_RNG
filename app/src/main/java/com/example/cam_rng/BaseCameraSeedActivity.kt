@@ -1,6 +1,7 @@
 package com.example.cam_rng
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
@@ -16,6 +17,10 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import android.view.HapticFeedbackConstants
+import android.view.SoundEffectConstants
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
@@ -28,6 +33,7 @@ data class SeedResult(val statusResId: Int, val resultText: CharSequence? = null
 
 abstract class BaseCameraSeedActivity : Activity() {
     protected abstract val statusText: TextView
+    protected open val resultText: TextView? = null
     protected abstract val previewImage: ImageView
     protected abstract val actionButton: Button
     protected abstract val saveButton: Button
@@ -37,6 +43,7 @@ abstract class BaseCameraSeedActivity : Activity() {
     private val photoDirName: String by lazy { getString(R.string.photo_dir_name) }
     private val photoMimeType: String by lazy { getString(R.string.photo_mime_jpeg) }
     private val photoFilePrefix: String by lazy { getString(R.string.photo_file_prefix) }
+    private val resultAccentColor: Int by lazy { getColor(R.color.result_accent) }
 
     @Volatile
     private var capturing = false
@@ -120,6 +127,7 @@ abstract class BaseCameraSeedActivity : Activity() {
                 {
                     stopEllipsisAnimation()
                     renderSeedResult(result)
+                    highlightResult()
                 },
                 processingDelayMs
             )
@@ -385,9 +393,57 @@ abstract class BaseCameraSeedActivity : Activity() {
         }
     }
 
+    private fun highlightResult() {
+        statusText.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        statusText.playSoundEffect(SoundEffectConstants.CLICK)
+        pulseText(statusText)
+        val resultView = resultText
+        if (resultView != null && resultView.visibility == View.VISIBLE && resultView.text.isNotEmpty()) {
+            pulseText(resultView)
+        }
+    }
+
+    private fun pulseText(textView: TextView) {
+        val baseColor = textView.currentTextColor
+        textView.animate().cancel()
+        textView.scaleX = PULSE_START_SCALE
+        textView.scaleY = PULSE_START_SCALE
+        textView.setTextColor(resultAccentColor)
+        textView.animate()
+            .scaleX(PULSE_PEAK_SCALE)
+            .scaleY(PULSE_PEAK_SCALE)
+            .setDuration(PULSE_UP_MS)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                textView.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(PULSE_DOWN_MS)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+            }
+            .start()
+        animateTextColor(textView, resultAccentColor, baseColor)
+    }
+
+    private fun animateTextColor(textView: TextView, startColor: Int, endColor: Int) {
+        ValueAnimator.ofArgb(startColor, endColor).apply {
+            duration = COLOR_FADE_MS
+            addUpdateListener { animator ->
+                val color = animator.animatedValue as Int
+                textView.setTextColor(color)
+            }
+        }.start()
+    }
+
     companion object {
         private const val REQUEST_IMAGE_CAPTURE = 2
         private const val REQUEST_STORAGE = 3
         private const val ELLIPSIS_INTERVAL_MS = 250L
+        private const val PULSE_UP_MS = 180L
+        private const val PULSE_DOWN_MS = 140L
+        private const val COLOR_FADE_MS = 600L
+        private const val PULSE_START_SCALE = 0.96f
+        private const val PULSE_PEAK_SCALE = 1.08f
     }
 }

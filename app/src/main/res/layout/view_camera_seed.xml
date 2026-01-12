@@ -14,6 +14,15 @@
         android:textColor="@color/text_high_contrast"
         android:textSize="24sp" />
 
+    <TextView
+        android:id="@+id/resultText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/text_high_contrast"
+        android:textSize="26sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/digitsRow"
         android:layout_width="wrap_content"
@@ -43,16 +52,8 @@
             android:textColor="@color/text_high_contrast"
             android:textColorHint="@color/text_hint_contrast" />
 
-        <TextView
-            android:id="@+id/resultText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/text_high_contrast"
-            android:textSize="26sp"
-            android:visibility="gone" />
-    
     </LinearLayout>
+
 
     <ImageView
         android:id="@+id/framePreview"

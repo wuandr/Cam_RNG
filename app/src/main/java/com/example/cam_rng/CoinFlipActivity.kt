@@ -13,6 +13,8 @@ class CoinFlipActivity : BaseCameraSeedActivity() {
     private lateinit var seedBinding: ViewCameraSeedBinding
 
     override lateinit var statusText: TextView
+    override val resultText: TextView
+        get() = seedBinding.resultText
     override lateinit var previewImage: ImageView
     override lateinit var actionButton: Button
     override lateinit var saveButton: Button

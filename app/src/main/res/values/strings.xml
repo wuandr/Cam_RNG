@@ -17,6 +17,9 @@
     <string name="save_button">Save photo</string>
     <string name="start_flip">Coin Flip</string>
     <string name="start_lucky_numbers">Lucky numbers</string>
+    <string name="kofi_prompt" formatted="false">If you are enjoying the app, consider buying me a coffee.</string>
+    <string name="kofi_button">Buy me a coffee</string>
+    <string name="kofi_url" translatable="false">https://ko-fi.com/REPLACE_ME</string>
     <string name="lucky_numbers_digits_label">Digits</string>
     <string name="lucky_numbers_hint">1-32</string>
     <string name="lucky_numbers_generate">Generate numbers</string>

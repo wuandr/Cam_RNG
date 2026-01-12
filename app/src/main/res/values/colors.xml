@@ -2,4 +2,5 @@
 <resources>
     <color name="text_high_contrast">#FFFFFF</color>
     <color name="text_hint_contrast">#B3FFFFFF</color>
+    <color name="result_accent">#FFD54F</color>
 </resources>
