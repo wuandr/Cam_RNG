@@ -39,7 +39,11 @@ class CoinFlipActivity : BaseCameraSeedActivity() {
     override fun buildSeedResult(seedBytes: ByteArray): SeedResult {
         val isHeads = SeededRng.coinFlip(seedBytes)
         val statusId = if (isHeads) R.string.status_heads else R.string.status_tails
-        return SeedResult(statusId)
+        return SeedResult(
+            statusId,
+            galleryTitle = getString(R.string.gallery_title_coin_flip),
+            galleryValue = getString(statusId)
+        )
     }
 
     override fun renderSeedResult(result: SeedResult) {

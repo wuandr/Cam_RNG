@@ -20,6 +20,10 @@ class LandingActivity : Activity() {
             startActivity(Intent(this, LuckyNumbersActivity::class.java))
         }
 
+        binding.galleryButton.setOnClickListener {
+            startActivity(Intent(this, GalleryActivity::class.java))
+        }
+
         binding.kofiButton.setOnClickListener {
             val kofiUrl = getString(R.string.kofi_url)
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(kofiUrl)))

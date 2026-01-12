@@ -54,7 +54,12 @@ class LuckyNumbersActivity : BaseCameraSeedActivity() {
 
     override fun buildSeedResult(seedBytes: ByteArray): SeedResult {
         val luckyNumbers = SeededRng.luckyDigits(seedBytes, pendingLength)
-        return SeedResult(R.string.status_lucky_numbers, luckyNumbers)
+        return SeedResult(
+            R.string.status_lucky_numbers,
+            luckyNumbers,
+            galleryTitle = getString(R.string.status_lucky_numbers),
+            galleryValue = luckyNumbers
+        )
     }
 
     override fun renderSeedResult(result: SeedResult) {

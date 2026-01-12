@@ -10,13 +10,23 @@
     <string name="status_no_camera">No camera available</string>
     <string name="status_canceled">Capture canceled</string>
     <string name="status_saving">Saving...</string>
-    <string name="status_saved">Saved to gallery</string>
+    <string name="status_saved">Saved to app gallery</string>
     <string name="status_save_error">Save failed</string>
-    <string name="status_storage_permission">Storage permission required to save</string>
     <string name="frame_preview_desc">Last captured frame</string>
-    <string name="save_button">Save photo</string>
+    <string name="save_button">Save moment</string>
     <string name="start_flip">Coin Flip</string>
     <string name="start_lucky_numbers">Lucky numbers</string>
+    <string name="gallery_button">Saved moments</string>
+    <string name="gallery_title">Saved moments</string>
+    <string name="gallery_empty">No saved moments yet.</string>
+    <string name="gallery_result_format">%1$s: %2$s</string>
+    <string name="gallery_photo_desc">Saved moment photo</string>
+    <string name="gallery_annotation_placeholder">Tap to add a note</string>
+    <string name="gallery_title_coin_flip">Coin Flip</string>
+    <string name="save_dialog_title">Save moment</string>
+    <string name="save_dialog_save">Save</string>
+    <string name="annotation_hint">Add a short note</string>
+    <string name="edit_annotation_title">Edit note</string>
     <string name="kofi_prompt" formatted="false">If you are enjoying the app, consider buying me a coffee.</string>
     <string name="kofi_button">Buy me a coffee</string>
     <string name="kofi_url" translatable="false">https://ko-fi.com/REPLACE_ME</string>
@@ -25,7 +35,5 @@
     <string name="lucky_numbers_generate">Generate numbers</string>
     <string name="status_invalid_digits">Enter a length from 1 to %1$d</string>
     <string name="status_lucky_numbers">Lucky Numbers</string>
-    <string name="photo_dir_name" translatable="false">Cam RNG</string>
-    <string name="photo_mime_jpeg" translatable="false">image/jpeg</string>
     <string name="photo_file_prefix" translatable="false">CamRng_</string>
 </resources>

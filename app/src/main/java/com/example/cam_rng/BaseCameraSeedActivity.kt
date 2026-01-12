@@ -1,20 +1,18 @@
 package com.example.cam_rng
 
-import android.Manifest
 import android.animation.ValueAnimator
 import android.app.Activity
-import android.content.ContentValues
+import android.app.AlertDialog
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.MediaScannerConnection
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.text.InputFilter
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.view.HapticFeedbackConstants
@@ -28,8 +26,14 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
-data class SeedResult(val statusResId: Int, val resultText: CharSequence? = null)
+data class SeedResult(
+    val statusResId: Int,
+    val resultText: CharSequence? = null,
+    val galleryTitle: String,
+    val galleryValue: String
+)
 
 abstract class BaseCameraSeedActivity : Activity() {
     protected abstract val statusText: TextView
@@ -40,8 +44,6 @@ abstract class BaseCameraSeedActivity : Activity() {
     protected open val processingDelayMs: Long
         get() = resources.getInteger(R.integer.processing_delay_ms).toLong()
 
-    private val photoDirName: String by lazy { getString(R.string.photo_dir_name) }
-    private val photoMimeType: String by lazy { getString(R.string.photo_mime_jpeg) }
     private val photoFilePrefix: String by lazy { getString(R.string.photo_file_prefix) }
     private val resultAccentColor: Int by lazy { getColor(R.color.result_accent) }
 
@@ -49,6 +51,7 @@ abstract class BaseCameraSeedActivity : Activity() {
     private var capturing = false
 
     private var currentPhotoFile: File? = null
+    private var currentSeedResult: SeedResult? = null
     private var ellipsisRunnable: Runnable? = null
     private var ellipsisTick = 0
 
@@ -67,10 +70,12 @@ abstract class BaseCameraSeedActivity : Activity() {
     protected open fun resetUi() {}
     protected open fun onCaptureCanceled() {
         resetUi()
+        currentSeedResult = null
     }
 
     protected open fun onCaptureFailed() {
         resetUi()
+        currentSeedResult = null
     }
 
     protected open fun onAfterSaveSuccess() {}
@@ -122,6 +127,7 @@ abstract class BaseCameraSeedActivity : Activity() {
             }
             setSaveAvailable(true)
             val result = buildSeedResult(bytes)
+            currentSeedResult = result
             startEllipsisAnimation()
             previewImage.postDelayed(
                 {
@@ -136,27 +142,6 @@ abstract class BaseCameraSeedActivity : Activity() {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != REQUEST_STORAGE) {
-            return
-        }
-        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            val photoFile = currentPhotoFile
-            if (photoFile != null && photoFile.exists()) {
-                savePhotoToGallery(photoFile)
-            } else {
-                showError(R.string.status_save_error)
-            }
-        } else {
-            setStatus(R.string.status_storage_permission)
-        }
-    }
-
     private fun launchCamera() {
         if (capturing) {
             return
@@ -168,6 +153,7 @@ abstract class BaseCameraSeedActivity : Activity() {
 
         cleanupPhoto(currentPhotoFile)
         setSaveAvailable(false)
+        currentSeedResult = null
 
         val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         if (captureIntent.resolveActivity(packageManager) == null) {
@@ -203,7 +189,7 @@ abstract class BaseCameraSeedActivity : Activity() {
     @Throws(IOException::class)
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: cacheDir
+        val storageDir = getTempPhotoDir()
         if (!storageDir.exists()) {
             storageDir.mkdirs()
         }
@@ -221,85 +207,85 @@ abstract class BaseCameraSeedActivity : Activity() {
 
     private fun handleSaveClick() {
         val photoFile = currentPhotoFile
-        if (photoFile == null || !photoFile.exists()) {
+        val seedResult = currentSeedResult
+        if (photoFile == null || !photoFile.exists() || seedResult == null) {
             showError(R.string.status_save_error)
             return
         }
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_STORAGE
-            )
-            return
-        }
-
-        savePhotoToGallery(photoFile)
+        promptForAnnotation(photoFile, seedResult)
     }
 
-    private fun savePhotoToGallery(photoFile: File) {
+    private fun promptForAnnotation(photoFile: File, seedResult: SeedResult) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.annotation_hint)
+            filters = arrayOf(InputFilter.LengthFilter(MAX_ANNOTATION_CHARS))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.save_dialog_title)
+            .setView(input)
+            .setPositiveButton(R.string.save_dialog_save) { _, _ ->
+                val annotation = input.text?.toString()?.trim().orEmpty()
+                savePhotoToAppStorage(photoFile, seedResult, annotation)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun savePhotoToAppStorage(
+        photoFile: File,
+        seedResult: SeedResult,
+        annotation: String
+    ) {
         stopEllipsisAnimation()
         saveButton.isEnabled = false
         setStatus(R.string.status_saving)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val resolver = contentResolver
-            val values = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, photoFile.name)
-                put(MediaStore.Images.Media.MIME_TYPE, photoMimeType)
-                put(
-                    MediaStore.Images.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_PICTURES + "/$photoDirName"
-                )
-                put(MediaStore.Images.Media.IS_PENDING, 1)
-            }
-            val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            if (uri == null) {
-                onSaveFailed()
-                return
-            }
-            try {
-                resolver.openOutputStream(uri)?.use { output ->
-                    photoFile.inputStream().use { input ->
-                        input.copyTo(output)
-                    }
-                } ?: throw IOException("Unable to open output stream")
-                values.clear()
-                values.put(MediaStore.Images.Media.IS_PENDING, 0)
-                resolver.update(uri, values, null, null)
-                onSaveSuccess(photoFile)
-            } catch (exc: IOException) {
-                resolver.delete(uri, null, null)
-                onSaveFailed()
-            }
-        } else {
-            val picturesDir =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-            val appDir = File(picturesDir, photoDirName)
-            if (!appDir.exists() && !appDir.mkdirs()) {
-                onSaveFailed()
-                return
-            }
-            val destFile = File(appDir, photoFile.name)
-            try {
-                photoFile.inputStream().use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
+        val savedFile = copyPhotoToSavedDir(photoFile)
+        if (savedFile == null) {
+            onSaveFailed()
+            return
+        }
+
+        val added = SavedMomentsStore.add(
+            this,
+            SavedMoment(
+                id = UUID.randomUUID().toString(),
+                createdAt = System.currentTimeMillis(),
+                mode = seedResult.galleryTitle,
+                resultTitle = seedResult.galleryTitle,
+                resultValue = seedResult.galleryValue,
+                annotation = annotation,
+                photoPath = savedFile.absolutePath
+            )
+        )
+        if (!added) {
+            savedFile.delete()
+            onSaveFailed()
+            return
+        }
+        onSaveSuccess(photoFile)
+    }
+
+    private fun copyPhotoToSavedDir(photoFile: File): File? {
+        val savedDir = getSavedPhotoDir()
+        if (!savedDir.exists() && !savedDir.mkdirs()) {
+            return null
+        }
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val destFile = File(
+            savedDir,
+            "${photoFilePrefix}Saved_${timeStamp}_${UUID.randomUUID().toString().take(8)}.jpg"
+        )
+        return try {
+            photoFile.inputStream().use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
                 }
-                MediaScannerConnection.scanFile(
-                    this,
-                    arrayOf(destFile.absolutePath),
-                    arrayOf(photoMimeType),
-                    null
-                )
-                onSaveSuccess(photoFile)
-            } catch (exc: IOException) {
-                onSaveFailed()
             }
+            destFile
+        } catch (exc: IOException) {
+            null
         }
     }
 
@@ -307,6 +293,7 @@ abstract class BaseCameraSeedActivity : Activity() {
         setStatus(R.string.status_saved)
         cleanupPhoto(photoFile)
         setSaveAvailable(false)
+        currentSeedResult = null
         onAfterSaveSuccess()
     }
 
@@ -321,7 +308,7 @@ abstract class BaseCameraSeedActivity : Activity() {
     }
 
     private fun cleanupStalePhotos() {
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: return
+        val storageDir = getTempPhotoDir()
         val files = storageDir.listFiles { file ->
             file.isFile && file.name.startsWith(photoFilePrefix) && file.extension.equals("jpg", true)
         } ?: return
@@ -363,6 +350,16 @@ abstract class BaseCameraSeedActivity : Activity() {
             bitmap.recycle()
         }
         return rotated
+    }
+
+    private fun getTempPhotoDir(): File {
+        val baseDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: cacheDir
+        return File(baseDir, TEMP_DIR_NAME)
+    }
+
+    private fun getSavedPhotoDir(): File {
+        val baseDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
+        return File(baseDir, SAVED_DIR_NAME)
     }
 
     private fun startEllipsisAnimation() {
@@ -438,12 +435,14 @@ abstract class BaseCameraSeedActivity : Activity() {
 
     companion object {
         private const val REQUEST_IMAGE_CAPTURE = 2
-        private const val REQUEST_STORAGE = 3
         private const val ELLIPSIS_INTERVAL_MS = 250L
         private const val PULSE_UP_MS = 180L
         private const val PULSE_DOWN_MS = 140L
         private const val COLOR_FADE_MS = 600L
         private const val PULSE_START_SCALE = 0.96f
         private const val PULSE_PEAK_SCALE = 1.08f
+        private const val MAX_ANNOTATION_CHARS = 140
+        private const val TEMP_DIR_NAME = "temp"
+        private const val SAVED_DIR_NAME = "saved"
     }
 }
