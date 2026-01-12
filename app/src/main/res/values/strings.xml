@@ -1,13 +1,28 @@
 <resources>
     <string name="app_name">Cam RNG</string>
     <string name="status_ready">Ready</string>
-    <string name="status_capturing">Capturing...</string>
-    <string name="status_permission">Camera permission required</string>
+    <string name="status_capturing">Opening camera...</string>
     <string name="flip_button">Flip coin</string>
     <string name="status_heads">Heads</string>
     <string name="status_tails">Tails</string>
+    <string name="status_processing">Processing</string>
     <string name="status_error">Camera error</string>
     <string name="status_no_camera">No camera available</string>
+    <string name="status_canceled">Capture canceled</string>
+    <string name="status_saving">Saving...</string>
+    <string name="status_saved">Saved to gallery</string>
+    <string name="status_save_error">Save failed</string>
+    <string name="status_storage_permission">Storage permission required to save</string>
     <string name="frame_preview_desc">Last captured frame</string>
-    <string name="camera_toggle_label">Use front camera</string>
+    <string name="save_button">Save photo</string>
+    <string name="start_flip">Coin Flip</string>
+    <string name="start_lucky_numbers">Lucky numbers</string>
+    <string name="lucky_numbers_digits_label">Digits</string>
+    <string name="lucky_numbers_hint">1-32</string>
+    <string name="lucky_numbers_generate">Generate numbers</string>
+    <string name="status_invalid_digits">Enter a length from 1 to %1$d</string>
+    <string name="status_lucky_numbers">Lucky Numbers</string>
+    <string name="photo_dir_name" translatable="false">Cam RNG</string>
+    <string name="photo_mime_jpeg" translatable="false">image/jpeg</string>
+    <string name="photo_file_prefix" translatable="false">CamRng_</string>
 </resources>

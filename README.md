@@ -1,6 +1,6 @@
 # Cam RNG
 
-Minimal Android app that uses a single camera frame to seed a `SecureRandom` coin flip.
+Minimal Android app that uses the device's camera app to capture a full-resolution photo and seed a `SecureRandom` coin flip.
 
 ## Setup
 
@@ -32,4 +32,4 @@ app/build/outputs/apk/debug/app-debug.apk
 ## Run on device
 
 - Connect a device with USB debugging enabled, then click Run in Android Studio.
-- The app requests camera permission on first use.
+- The app launches the default camera app when you tap "Flip coin".

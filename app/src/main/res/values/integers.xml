@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="processing_delay_ms">1500</integer>
+    <integer name="max_lucky_digits">32</integer>
+</resources>
