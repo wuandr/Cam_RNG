@@ -1,3 +1,5 @@
+<img width="270" height="585" alt="image" src="https://github.com/user-attachments/assets/4141c27e-c13c-465f-ad5b-4e053851ae1b" /> 
+
 # Cam RNG
 
 Minimal Android app that uses the device's camera app to capture a full-resolution photo and seed a `SecureRandom` coin flip.
@@ -33,3 +35,8 @@ app/build/outputs/apk/debug/app-debug.apk
 
 - Connect a device with USB debugging enabled, then click Run in Android Studio.
 - The app launches the default camera app when you tap "Flip coin".
+
+## Screenshots
+
+<img width="270" height="585" alt="image" src="https://github.com/user-attachments/assets/6920a386-9e2b-4e94-84ea-8578c4498391" /> <img width="270" height="585" alt="image" src="https://github.com/user-attachments/assets/64405f08-10ab-44b5-a618-9544e49df364" /> <img width="270" height="585" alt="image" src="https://github.com/user-attachments/assets/ff87b084-1bf5-4aff-9e08-9ee681ebbff2" />
+
